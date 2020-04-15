@@ -1,0 +1,792 @@
+
+library(textreadr)
+library(dplyr)
+library(stringr)
+library(tidytext)
+library(tidyr)
+
+# Reading the text documents
+
+file1 <- read_document(file="Africa Classroom Connection.txt")
+file2 <- read_document(file="African Childrens Haven.txt")
+file3 <- read_document(file="H20 For Life.txt")
+file4 <- read_document(file="John Dau Foundation.txt")
+file5 <- read_document(file="Water to Thrive.txt")
+files_combo<- cbind(file1, file2, file3, file4, file5)
+file_df <- as.data.frame(files_combo, stringsAsFactors = FALSE)
+View(file_df)
+
+
+a <- 7          #observations
+b <- 5          #variables 
+#files_df <- as.data.frame(matrix(nrow=a, ncol=b), stringsAsFactors = FALSE)
+
+#for(z in 1:b){
+#  for(i in 1:a){
+#    files_df[i,z]<- files_combo[i*b+z-b]
+#  }#closing z loop
+#}#closing i loop
+
+
+data(stop_words)
+my_junk <- tibble(
+  word=c("John", "Dau", "Foundation", "connection", "percent"),
+  lexicon = rep("junk", each=5)
+)
+
+my_junk
+stop_words1 <- rbind(stop_words, my_junk)     # to remove those values
+
+#subseting the dataframe to get insights (first column only)
+#African Classroom Connection
+
+file1_txt <- file_df$file1
+
+mydf_1 <- data_frame(line=1:a, text=file1_txt)
+print(mydf_1)
+
+#Tokenize
+file1_tokens <- mydf_1 %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  anti_join(stop_words1) %>%    #remove tokens
+  count(word, sentiment, sort= TRUE) %>%
+  ungroup()
+
+#no punctutation, no upper case letters
+print(file1_tokens)
+
+#Plot with correlation map
+library(ggplot2)
+freq_hist1 <- mydf_1 %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE) %>%
+  mutate(word=reorder(word, n)) %>%
+  filter(n>1.25) %>%
+  ggplot(aes(word, n))+
+  geom_col()+
+  labs(y="African Classroom Connection", x=NULL)+
+  coord_flip()
+print(freq_hist1)
+
+
+##### We consider looking at pairs of the words with no stop words
+#to remove stop words from the bigram data, we need to use the separate function:
+bigram1 <- mydf_1 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n=2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%       #removing stop words
+  count(word1, word2, sort = TRUE)
+
+bigram1
+
+
+######## 4 consecutive words - quadro-gram ###
+######################################################
+quadrogram1 <- mydf_1 %>%
+  unnest_tokens(quadrogram, text, token = "ngrams", n=4) %>%
+  separate(quadrogram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word)
+
+quadrogram1
+
+
+###Wordcloud File 1
+##Africa Classroom Connection
+#############################
+
+#install.packages("wordcloud")
+library(wordcloud)
+
+file1_df <- mydf_1 %>%
+  mutate(lienumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+                                                 ignore_case = TRUE))))%>%
+  ungroup() %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words1) %>%
+  count(word, sort=T)
+
+file1_df %>%
+  with(wordcloud(word, n, max.words = 100))
+
+
+#### Adding positive and negative sentiments
+
+#install.packages(("reshape2"))
+library(reshape2)
+
+file1_df %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort=TRUE) %>%
+  acast(word ~sentiment, value.var="n", fill=0) %>%
+  comparison.cloud(colors = c("grey20", "gray80"),
+                   max.words=100, fixed.asp=TRUE, scale=c(0.6,0.6), 
+                   title.size=1, rot.per=0.25)
+###################################################################################
+#subseting the dataframe to get insights (second column)
+#African Childrens Haven
+
+file2_txt <- file_df$file2
+
+mydf_2 <- data_frame(line=1:a, text=file2_txt)
+print(mydf_2)
+
+#Tokenize
+file2_tokens <- mydf_2 %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  anti_join(stop_words) %>%    #remove tokens
+  count(word, sentiment, sort= TRUE) %>%
+  ungroup()
+
+#no punctutation, no upper case letters
+print(file2_tokens)
+
+
+#Plot with correlation map
+library(ggplot2)
+freq_hist2 <- mydf_2 %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE) %>%
+  mutate(word=reorder(word, n)) %>%
+  filter(n>2) %>%
+  ggplot(aes(word, n))+
+  geom_col()+
+  labs(y="African Childrens Haven", x=NULL)+
+  coord_flip()
+print(freq_hist2)
+
+
+##### We consider looking at pairs of the words with no stop words
+#to remove stop words from the bigram data, we need to use the separate function:
+bigram2 <- mydf_2 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n=2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%       #removing stop words
+  count(word1, word2, sort = TRUE)
+
+bigram2
+
+
+######## 4 consecutive words - quadro-gram ###
+######################################################
+quadrogram2 <- mydf_2 %>%
+  unnest_tokens(quadrogram, text, token = "ngrams", n=4) %>%
+  separate(quadrogram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word)
+
+quadrogram2
+
+
+###Wordcloud File 2
+##African Childrens Haven
+#############################
+
+#install.packages("wordcloud")
+library(wordcloud)
+
+file2_df <- mydf_2 %>%
+  mutate(lienumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+                                                 ignore_case = TRUE))))%>%
+  ungroup() %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words) %>%
+  count(word, sort=T)
+
+file2_df %>%
+  with(wordcloud(word, n, max.words = 100))
+
+
+#### Adding positive and negative sentiments
+
+#install.packages(("reshape2"))
+library(reshape2)
+
+file2_df %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, sentiment, sort=TRUE) %>%
+  acast(word ~sentiment, value.var="n", fill=0) %>%
+  comparison.cloud(colors = c("grey20", "gray80"),
+                   max.words=100, fixed.asp=TRUE, scale=c(0.6,0.6), 
+                   title.size=1, rot.per=0.25)
+
+
+#####################################################################################
+#subseting the dataframe to get insights (third column)
+#H20 For Life
+
+file3_txt <- file_df$file3
+
+mydf_3 <- data_frame(line=1:a, text=file3_txt)
+print(mydf_3)
+
+#Tokenize
+file3_tokens <- mydf_3 %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  anti_join(stop_words) %>%    #remove tokens
+  count(word, sentiment, sort= TRUE) %>%
+  ungroup()
+
+#no punctutation, no upper case letters
+print(file3_tokens)
+
+
+#Plot with correlation map
+library(ggplot2)
+freq_hist3 <- mydf_3 %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE) %>%
+  mutate(word=reorder(word, n)) %>%
+  filter(n>2) %>%
+  ggplot(aes(word, n))+
+  geom_col()+
+  labs(y="H20 for Life", x=NULL)+
+  coord_flip()
+print(freq_hist3)
+
+
+##### We consider looking at pairs of the words with no stop words
+#to remove stop words from the bigram data, we need to use the separate function:
+bigram3 <- mydf_3 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n=2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%       #removing stop words
+  count(word1, word2, sort = TRUE)
+
+bigram3
+
+
+######## 4 consecutive words - quadro-gram ###
+######################################################
+quadrogram3 <- mydf_3 %>%
+  unnest_tokens(quadrogram, text, token = "ngrams", n=4) %>%
+  separate(quadrogram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word)
+
+quadrogram3
+
+###Wordcloud File 3
+##H20 For Life
+#############################
+
+#install.packages("wordcloud")
+library(wordcloud)
+
+file3_df <- mydf_3 %>%
+  mutate(lienumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+                                                 ignore_case = TRUE))))%>%
+  ungroup() %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words) %>%
+  count(word, sort=T)
+
+file3_df %>%
+  with(wordcloud(word, n, max.words = 100))
+
+
+#### Adding positive and negative sentiments
+
+#install.packages(("reshape2"))
+library(reshape2)
+
+file3_df %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, sentiment, sort=TRUE) %>%
+  acast(word ~sentiment, value.var="n", fill=0) %>%
+  comparison.cloud(colors = c("grey20", "gray80"),
+                   max.words=100, fixed.asp=TRUE, scale=c(1.0,1.0), 
+                   title.size=1, rot.per=0.25)
+
+
+################################################################################
+#subseting the dataframe to get insights (fourth column)
+#John Dau Foundation
+
+file4_txt <- file_df$file4
+
+mydf_4 <- data_frame(line=1:a, text=file4_txt)
+print(mydf_4)
+
+
+#Tokenize
+file4_tokens <- mydf_4 %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  anti_join(stop_words1) %>%    #remove tokens
+  count(word, sentiment, sort= TRUE) %>%
+  ungroup()
+
+#no punctutation, no upper case letters
+print(file4_tokens)
+
+
+#Plot with correlation map
+library(ggplot2)
+freq_hist4 <- mydf_4 %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words1) %>%
+  count(word, sort=TRUE) %>%
+  mutate(word=reorder(word, n)) %>%
+  filter(n>3) %>%
+  ggplot(aes(word, n))+
+  geom_col()+
+  labs(y="John Dau Foundation", x=NULL)+
+  coord_flip()
+print(freq_hist4)
+
+#remove john, dau, foundation
+
+
+
+##### We consider looking at pairs of the words with no stop words
+#to remove stop words from the bigram data, we need to use the separate function:
+bigram4 <- mydf_4 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n=2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words1$word) %>%
+  filter(!word2 %in% stop_words1$word) %>%       #removing stop words
+  count(word1, word2, sort = TRUE)
+
+bigram4
+
+
+######## 4 consecutive words - quadro-gram ###
+######################################################
+quadrogram4 <- mydf_4 %>%
+  unnest_tokens(quadrogram, text, token = "ngrams", n=4) %>%
+  separate(quadrogram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+  filter(!word1 %in% stop_words1$word) %>%
+  filter(!word2 %in% stop_words1$word) %>%
+  filter(!word3 %in% stop_words1$word) %>%
+  filter(!word4 %in% stop_words1$word)
+
+quadrogram4
+
+###Wordcloud File 4
+##John Dau Foundation
+#############################
+
+#install.packages("wordcloud")
+library(wordcloud)
+
+file4_df <- mydf_4 %>%
+  mutate(lienumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+                                                 ignore_case = TRUE))))%>%
+  ungroup() %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words1) %>%
+  count(word, sort=T)
+
+file4_df %>%
+  with(wordcloud(word, n, max.words = 100))
+
+
+#### Adding positive and negative sentiments
+
+#install.packages(("reshape2"))
+library(reshape2)
+
+file4_df %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort=TRUE) %>%
+  acast(word ~sentiment, value.var="n", fill=0) %>%
+  comparison.cloud(colors = c("grey20", "gray80"),
+                   max.words=100, fixed.asp=TRUE, scale=c(0.6,0.6), 
+                   title.size=1, rot.per=0.25)
+
+
+###################################################################################
+#subseting the dataframe to get insights (last column)
+#Water to Thrive
+
+file5_txt <- file_df$file5
+
+mydf_5 <- data_frame(line=1:a, text=file5_txt)
+print(mydf_5)
+
+#Tokenize
+file5_tokens <- mydf_5 %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  anti_join(stop_words) %>%    #remove tokens
+  count(word, sentiment, sort= TRUE) %>%
+  ungroup()
+
+#no punctutation, no upper case letters
+print(file5_tokens)
+
+
+#Plot with correlation map
+library(ggplot2)
+freq_hist5 <- mydf_5 %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort=TRUE) %>%
+  mutate(word=reorder(word, n)) %>%
+  filter(n>2) %>%
+  ggplot(aes(word, n))+
+  geom_col()+
+  labs(y="Water to Thrive", x=NULL)+
+  coord_flip()
+print(freq_hist5)
+
+
+##### We consider looking at pairs of the words with no stop words
+#to remove stop words from the bigram data, we need to use the separate function:
+bigram5 <- mydf_5 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n=2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%       #removing stop words
+  count(word1, word2, sort = TRUE)
+
+bigram5
+
+
+######## 4 consecutive words - quadro-gram ###
+######################################################
+quadrogram5 <- mydf_5 %>%
+  unnest_tokens(quadrogram, text, token = "ngrams", n=4) %>%
+  separate(quadrogram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word)
+
+quadrogram5
+
+###Wordcloud File 5
+##Water to Thrive
+#############################
+
+#install.packages("wordcloud")
+library(wordcloud)
+
+file5_df <- mydf_5 %>%
+  mutate(lienumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
+                                                 ignore_case = TRUE))))%>%
+  ungroup() %>%
+  unnest_tokens(word, text)%>%
+  anti_join(stop_words) %>%
+  count(word, sort=T)
+
+file5_df %>%
+  with(wordcloud(word, n, max.words = 100))
+
+
+#### Adding positive and negative sentiments
+
+#install.packages(("reshape2"))
+library(reshape2)
+
+file5_df %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, sentiment, sort=TRUE) %>%
+  acast(word ~sentiment, value.var="n", fill=0) %>%
+  comparison.cloud(colors = c("grey20", "gray80"),
+                   max.words=100, fixed.asp=TRUE, scale=c(2,2), 
+                   title.size=1, rot.per=0.25)
+
+
+#############################1
+# ZIPZ law
+frequency_file <- bind_rows(mutate(file1_tokens, file = 'NGO1'),
+                               mutate(file2_tokens, file = 'NGO2'),
+                               mutate(file3_tokens, file = 'NGO3'),
+                               mutate(file4_tokens, file = 'NGO4'),
+                               mutate(file5_tokens, file = 'NGO5')) %>%
+  mutate(proportion = n/sum(n))
+
+total_words <- frequency_file %>%
+  group_by(file) %>%
+  summarize(total=sum(n))
+print(total_words)
+
+
+my_words <- left_join(frequency_file, total_words)
+print(my_words)
+
+########## ZIPF's law ################
+######################################
+
+freq_by_rank <- my_words %>%
+  group_by(file) %>%
+  mutate(rank = row_number(),
+         `term frequency` = n/total)
+freq_by_rank
+
+#let's plot ZIPF's Law
+freq_by_rank %>%
+  ggplot(aes(rank, `term frequency`, color=file))+
+  #let's add a tangent line , the first derivative, and see what the slop is
+  geom_abline(intercept=-0.62, slope= -1.1, color='gray50', linetype=2)+
+  geom_line(size= 1.1, alpha = 0.8, show.legend = TRUE)+
+  scale_x_log10()+
+  scale_y_log10()
+
+
+################# TF_IDF ##########################
+###################################################
+
+my_words <- my_words %>%
+  bind_tf_idf(word, file, n)%>%
+  arrange(desc(tf_idf))
+
+my_words
+
+# looking at the graphical approach:
+my_words %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word=factor(word, levels=rev(unique(word)))) %>%
+  group_by(file) %>%
+  top_n(15) %>%
+  ungroup %>%
+  ggplot(aes(word, tf_idf, fill=file))+
+  geom_col(show.legend=FALSE)+
+  labs(x=NULL, y="tf-idf")+
+  facet_wrap(~file, ncol=2, scales="free")+
+  coord_flip()
+
+
+
+###### We can also apply the tf_idf framework  ############
+########### on our bigram and quadro-gram #################
+###########################################################
+# ZIPZ law
+frequency_file2 <- bind_rows(mutate(bigram1, file = 'NGO1'),
+                            mutate(bigram2, file = 'NGO2'),
+                            mutate(bigram3, file = 'NGO3'),
+                            mutate(bigram4, file = 'NGO4'),
+                            mutate(bigram5, file = 'NGO5'))
+
+total_words2 <- frequency_file2 %>%
+  group_by(file) %>%
+  summarize(total=sum(n))
+print(total_words)
+
+
+my_words2 <- left_join(frequency_file2, total_words2)
+print(my_words2)
+
+bigram_tf_idf <- my_words2 %>%
+  unite(my_words2, word1, word2, sep=" ") %>% #we need to unite what we split in the previous section
+  count(file, my_words2) %>%
+  bind_tf_idf(my_words2, file, n) %>%
+  arrange(desc(tf_idf))
+  
+
+bigram_tf_idf
+#we like high idf as it helps us differentiate
+
+####### VISUALISING A BIGRAM NETWORK #################
+#install.packages("igraph")
+library(igraph)
+bigram_graph <- bigram_tf_idf %>%
+  graph_from_data_frame()
+
+bigram_graph
+
+
+#install.packages("ggraph")
+library(ggraph)
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link()+
+  geom_node_point()+
+  geom_node_text(aes(label= name))
+
+###quadrogram tf_idf
+
+frequency_file3 <- bind_rows(mutate(quadrogram1, file = 'NGO1'),
+                             mutate(quadrogram2, file = 'NGO2'),
+                             mutate(quadrogram3, file = 'NGO3'),
+                             mutate(quadrogram4, file = 'NGO4'),
+                             mutate(quadrogram5, file = 'NGO5'))
+
+
+quadrogram_tf_idf <- frequency_file3 %>%
+  unite(frequency_file3, word1, word2, word3, word4, sep=" ") %>% #we need to unite what we split in the previous section
+  count(file, frequency_file3) %>%
+  bind_tf_idf(frequency_file3, file, n) %>%
+  arrange(desc(tf_idf))
+
+quadrogram_tf_idf
+
+
+
+
+
+
+
+
+#let's plot the correlograms:
+library(scales)
+library(ggplot2)
+ggplot(frequency_file, aes(x=proportion, y=`NGO1`, 
+                      color = abs(`NGO1`- proportion)))+
+  geom_abline(color="grey40", lty=2)+
+  geom_jitter(alpha=.1, size=2.5, width=0.3, height=0.3)+
+  geom_text(aes(label=word), check_overlap = TRUE, vjust=1.5) +
+  scale_x_log10(labels = percent_format())+
+  scale_y_log10(labels= percent_format())+
+  scale_color_gradient(limits = c(0,0.001), low = "darkslategray4", high = "gray75")+
+  facet_wrap(~file, ncol=2)+
+  theme(legend.position = "none")+
+  labs(y= "NGO1", x=NULL)
+
+
+cor.test(data=frequency_file[frequency_file$file == "NGO2",],
+         ~proportion + `NGO1`)
+
+cor.test(data=frequency[frequency$author == "ASIA",],
+         ~proportion + `USA`)
+###### N-grams and tokenizing ###############
+#############################################
+
+library(dplyr)
+library(tidytext)
+library(tidyr)
+
+#n-grams split text into pairs or by three to see if there
+#are any patterns (bi=2/pairs)
+file_bigrams <- file_df %>%
+  unnest_tokens(bigram, text, token = "ngrams", n=2)
+
+austen_bigrams #We want to see the bigrams (words that appear together, "pairs")
+
+austen_bigrams %>%
+  count(bigram, sort = TRUE) #this has many stop words, need to remove them 
+
+#to remove stop words from the bigram data, we need to use the separate function:
+library(tidyr)
+bigrams_separated <- austen_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+bigrams_filtered <- bigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+#creating the new bigram, "no-stop-words":
+bigram_counts <- bigrams_filtered %>%
+  count(word1, word2, sort = TRUE)
+#want to see the new bigrams
+bigram_counts
+
+###########################################################
+###### What if we are interested in the most common #######
+################ 4 consecutive words - quadro-gram ########
+###########################################################
+quadrogram <- austen_books() %>%
+  unnest_tokens(quadrogram, text, token = "ngrams", n=4) %>%
+  separate(quadrogram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word4 %in% stop_words$word) 
+
+quadrogram
+
+###########################################################
+###### We can also apply the tf_idf framework  ############
+########### on our bigram and quadro-gram #################
+###########################################################
+
+bigram_united <- bigrams_filtered %>%
+  unite(bigram, word1, word2, sep=" ") #we need to unite what we split in the previous section
+
+bigram_tf_idf <- bigram_united %>%
+  count(book, bigram) %>%
+  bind_tf_idf(bigram, book, n) %>%
+  arrange(desc(tf_idf))
+
+bigram_tf_idf
+
+
+#we like high idf as it helps us differentiate
+##### lets do the same for a quadrogram
+
+quadrogram_united <- quadrogram %>%
+  unite(quadrogram, word1, word2, word3, word4, sep=" ") #we need to unite what we split in the previous section
+
+quadrogram_tf_idf <- quadrogram_united %>%
+  count(book, quadrogram) %>%
+  bind_tf_idf(quadrogram, book, n) %>%
+  arrange(desc(tf_idf))
+
+quadrogram_tf_idf
+
+######################################################
+######## visualising negated words ###################
+###### negated words in sentiment analysis ###########
+######################################################
+
+negation_tokens <- c("no", "never", "without", "not")#what negation tokens do you want to use?
+
+negated_words <- bigrams_separated %>%
+  filter(word1 %in% negation_tokens) %>%
+  inner_join(get_sentiments('afinn'), by=c(word2="word")) %>%
+  count(word1, word2, value, sort=TRUE) %>%
+  ungroup()
+
+negated_words
+
+#################################################
+#### we can visuals the negated words ###########
+#we'll create a function to plot the negations###
+#################################################
+negated_words_plot <- function(x){
+  negated_words %>%
+    filter(word1 == x) %>%
+    mutate(contribution = n* value) %>%
+    arrange(desc(abs(contribution))) %>%
+    head(20) %>%
+    mutate(word2 = reorder(word2, contribution)) %>%
+    ggplot(aes(word2, n*value, fill = n*score >0))+
+    geom_col(show.legend = FALSE)+
+    xlab(paste("Words preceded by", x))+
+    ylab("Sentiment score* number of occurences")+
+    coord_flip()
+}#closing the negated_words_plot function
+
+negated_words_plot(x="no") #this is your first negation word
+negated_words_plot(x="not") #this is your second negation word
+negated_words_plot(x="without") #this is your third negation word
+
+######################################################
+####### VISUALISING A BIGRAM NETWORK #################
+######################################################
+
+#install.packages("igraph")
+library(igraph)
+bigram_graph <- bigram_counts %>%
+  filter(n>20) %>%
+  graph_from_data_frame()
+
+bigram_graph
+
+install.packages("ggraph")
+library(ggraph)
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link()+
+  geom_node_point()+
+  geom_node_text(aes(label=name), vjust =1, hjust=1)

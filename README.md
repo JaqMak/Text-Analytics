@@ -1,4 +1,4 @@
-# Text-Analytics
+# Text-Analytics NGO Review
 This case study is based on the descriptions provided by different NGOs working in Africa. We look at the words used and a person’s preference and provide a suggestion for an NGO to donate to. 
 For this case, the NGOs we will be considering are:
 -	Water to Thrive
